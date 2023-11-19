@@ -45,16 +45,20 @@ def parse_record(record):
 #     return np.array(image.resize((size, size)))
 
 
-def add_global_id(dct):
-    dct["global_id"] = dct["id"] + "-" + str(dct["datetime"])
-    dct["datetime"] = datetime.datetime.fromtimestamp(dct["datetime"]).isoformat()
+def change_attributes(dct):
+    dct["global_id"] = dct["id"] + "-" + "imgur"
+    dct["created"] = dct["datetime"]
+    dct["created_utc"] = dct["datetime"]-3600
+    dct["datetime"] = datetime.datetime.fromtimestamp(dct["created"]).isoformat()
+    dct["datetime_utc"] = datetime.datetime.fromtimestamp(dct["created_utc"]).isoformat()
+    dct["url"] = dct.pop("link")
    # if not dct["animated"]:
    #     dct["image"] = get_img_from_link(dct["link"])
 
 
 def album_image_to_dict(img):
     img_dict = vars(img)
-    add_global_id(img_dict)
+    change_attributes(img_dict)
     return img_dict
 
 
@@ -88,7 +92,7 @@ def enrich_image(img, album):
             continue
         img[att] = getattr(album, att)
             
-    add_global_id(img)
+    change_attributes(img)
     return img
 
 

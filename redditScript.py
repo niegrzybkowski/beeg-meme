@@ -39,4 +39,6 @@ for submission in reddit.subreddit(args.subreddit).hot(limit=args.number):
         if not (k[0]=="_" or k in ["flair", "mod", "subreddit"])
     }
     s["author"] = submission.author.name
+    s["datetime_utc"] = datetime.datetime.fromtimestamp(s["created_utc"]).isoformat()
+    s["datetime"] = datetime.datetime.fromtimestamp(s["created"]).isoformat()
     print(json.dumps(s))
