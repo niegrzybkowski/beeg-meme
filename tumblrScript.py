@@ -40,12 +40,15 @@ img_tag  = "npf_row"
 
 def retrieve_img_url(post):
     # find start and end of the image tag
-    start = post['body'].find('<div')
-    end = post['body'].find("</div>") + len("</div>")
+    start = post['body'].find('<img ')
+    end = post['body'].find(">",start) + len(">")
     # parse xml string
-    body = ET.fromstring(post["body"][start:end])
+    if post['body'][end-2] != '/':
+        body = ET.fromstring(post['body'][start:end-1] + '/>')
+    else:
+        body = ET.fromstring(post["body"][start:end])
     # get a string of post's image in different resolutions
-    img_formats = body[0][0].attrib['srcset']
+    img_formats = body.attrib['srcset']
     # retrieve the last resolution (the largest) and get the url
     largest_img = img_formats.split(',')[-1].strip().split(' ')[0]
     return largest_img
