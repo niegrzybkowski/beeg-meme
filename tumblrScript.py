@@ -1,4 +1,5 @@
 from pytumblr import TumblrRestClient
+import xml.etree.ElementTree as ET
 import datetime
 import argparse
 import json
@@ -31,17 +32,37 @@ parser.add_argument("-os", "--oauth_secret",
 
 parser.add_argument("-t", "--tag",
                     help="Reddit tag name",
-                    default="dank memes")
+                    default="memes")
 args = parser.parse_args()
 
 
-img_tag  = "img src=\""
+img_tag  = "npf_row" 
 
-def retrieve_url(content_xml, img_tag):
-    start = content_xml.find(img_tag) + len(img_tag)
-    end = content_xml.find("\"", start)
-    return content_xml[start:end]
+def retrieve_img_url(post):
+    # find start and end of the image tag
+    start = post['body'].find('<div')
+    end = post['body'].find("</div>") + len("</div>")
+    # parse xml string
+    body = ET.fromstring(post["body"][start:end])
+    # get a string of post's image in different resolutions
+    img_formats = body[0][0].attrib['srcset']
+    # retrieve the last resolution (the largest) and get the url
+    largest_img = img_formats.split(',')[-1].strip().split(' ')[0]
+    return largest_img
 
+def create_record(post):
+    # post's image url
+    img_url = retrieve_img_url(post)
+    # post's publication datetime
+    dt = datetime.datetime.fromtimestamp(p["timestamp"]).isoformat()
+    record = {"id": post["id"],
+              "datetime": dt,
+              "author": post['blog']['name'],
+              "note_count": post['note_count'],
+              "description": post['summary'],
+              "img": img_url
+              }
+    return record
 
 if __name__ == "__main__":
     client = TumblrRestClient(
@@ -50,14 +71,19 @@ if __name__ == "__main__":
         args.oauth_token,
         args.oauth_secret
     )
+    limit = args.number
+    
+    num_imgs = 0
+    min_timestamp = None
+    while num_imgs < limit:
+        posts = client.tagged(args.tag, limit=min(args.number,20),before=min_timestamp)
+        for p in posts:
+            min_timestamp = p["timestamp"]
+            if "body" in p and img_tag in p["body"]:
+                record = create_record(p)
+                print(json.dumps(record))
 
-    posts = client.tagged(args.tag, limit=args.number)
-    for p in posts:
-        content_xml = p["trail"][0]["content"]
-        if img_tag in content_xml:
-            # post's image url
-            img_url = retrieve_url(content_xml, img_tag)
-            # post's publication datetime
-            dt = datetime.datetime.fromtimestamp(p["timestamp"]).isoformat()
-            record = {"id":p["id"],"datetime":dt,"img":img_url}
-            print(json.dumps(record))
+                num_imgs += 1
+                if num_imgs == limit:
+                    break
+    #print(num_imgs)
