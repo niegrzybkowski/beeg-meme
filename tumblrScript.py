@@ -51,7 +51,7 @@ if __name__ == "__main__":
         args.oauth_secret
     )
 
-    posts = client.tagged("dank memes", limit=args.number)
+    posts = client.tagged(args.tag, limit=args.number)
     for p in posts:
         content_xml = p["trail"][0]["content"]
         if img_tag in content_xml:
