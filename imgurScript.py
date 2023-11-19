@@ -1,12 +1,12 @@
 from imgurpython import ImgurClient
+import datetime
 import argparse
+import json
 
 headers = {
     'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/55.0.2883.87 Safari/537.36'
 }
 size = 200
-
-# To be hidden in the future
 
 parser = argparse.ArgumentParser(
     prog="ImgurAPIGetter",
@@ -47,6 +47,7 @@ def parse_record(record):
 
 def add_global_id(dct):
     dct["global_id"] = dct["id"] + "-" + str(dct["datetime"])
+    dct["datetime"] = datetime.datetime.fromtimestamp(dct["datetime"]).isoformat()
    # if not dct["animated"]:
    #     dct["image"] = get_img_from_link(dct["link"])
 
@@ -59,22 +60,34 @@ def album_image_to_dict(img):
 
 def enrich_image(img, album):
     redundants = ['cover',
-                  'cover_height',
-                  'cover_width',
-                  'images',
-                  'images_count',
-                  'include_album_ads',
-                  'layout',
-                  'privacy']
+ 'cover_height',
+ 'cover_width',
+ 'images',
+ 'images_count',
+ 'include_album_ads',
+ 'layout',
+ 'privacy']
+    override = ['title', 
+    'description', 
+    'comment_count',
+ 'favorite_count',
+ 'ups',
+ 'downs',
+ 'points',
+ 'score','account_url',
+ 'account_id']
     for att in dir(album):
         if att.startswith('__'):
             continue
-        if att in img.keys():
+        if att in img.keys() and att not in override:
             continue
+        if att in override:
+            if img[att] is not None:
+                continue
         if att in redundants:
             continue
         img[att] = getattr(album, att)
-
+            
     add_global_id(img)
     return img
 
@@ -89,4 +102,5 @@ if __name__ == "__main__":
         #results.extend(parse_record(item))
         for img in parse_record(item):
             if not img["animated"]:
-                print(img)
+                print(json.dumps(img))
+                #print(img)
