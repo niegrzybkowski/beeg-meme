@@ -1,8 +1,8 @@
 import argparse
 
 parser = argparse.ArgumentParser(
-    prog="ImgurAPIGetter",
-    description="Script to retrieve images using the Imgur API"
+    prog="RedditAPIGetter",
+    description="Script to retrieve images using the Reddit API"
 )
 parser.add_argument("-n", "--number",
                     help="Number of images retrieved",
