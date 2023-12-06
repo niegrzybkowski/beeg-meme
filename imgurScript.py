@@ -102,9 +102,12 @@ if __name__ == "__main__":
     items = client.gallery(section='user', sort='time', page=0, show_viral=False)
     n = args.number
     #results = []
-    for item in items[:n]:
+    i = 0
+    for item in items:
         #results.extend(parse_record(item))
         for img in parse_record(item):
             if not img["animated"]:
+                i += 1
                 print(json.dumps(img))
-                #print(img)
+        if i >= n:
+            break
