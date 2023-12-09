@@ -1,5 +1,5 @@
 # Run with:
-# spark-submit --name vit --packages org.apache.spark:spark-sql-kafka-0-10_2.12:3.5.0 -- vitjob.py
+# spark-submit --name vit --packages org.apache.spark:spark-sql-kafka-0-10_2.12:3.5.0 vitjob.py
 from pyspark.sql import SparkSession
 from pyspark.sql.functions import *
 from pyspark.sql.types import *
