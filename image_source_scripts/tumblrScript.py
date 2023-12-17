@@ -62,8 +62,7 @@ def create_record(post):
               "author": post['blog']['name'],
               "note_count": post['note_count'],
               "description": post['summary'],
-              "img": img_url,
-              "image": get_img_from_link(img_url)
+              "img": img_url
               }
     return record
 
@@ -85,7 +84,7 @@ if __name__ == "__main__":
             if "body" in p and img_tag in p["body"]:
                 record = create_record(p)
                 print(json.dumps(record))
-
+                get_img_from_link(record['img'], str(record['id'])+'-tumblr')
                 num_imgs += 1
                 if num_imgs == limit:
                     break

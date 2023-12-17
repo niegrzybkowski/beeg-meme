@@ -43,5 +43,5 @@ for submission in reddit.subreddit(args.subreddit).hot(limit=args.number):
     s["author"] = submission.author.name
     s["datetime_utc"] = datetime.datetime.fromtimestamp(s["created_utc"]).isoformat()
     s["datetime"] = datetime.datetime.fromtimestamp(s["created"]).isoformat()
-    s["image"] = get_img_from_link(s["url"])
+    get_img_from_link(s['url'], s['id']+'-reddit')
     print(json.dumps(s))

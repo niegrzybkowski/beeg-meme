@@ -42,8 +42,8 @@ def change_attributes(dct):
     dct["datetime"] = datetime.datetime.fromtimestamp(dct["created"]).isoformat()
     dct["datetime_utc"] = datetime.datetime.fromtimestamp(dct["created_utc"]).isoformat()
     dct["url"] = dct.pop("link")
-    if not dct["animated"]:
-        dct["image"] = get_img_from_link(dct["url"])
+    #if not dct["animated"]:
+    #    dct["image"] = get_img_from_link(dct["url"])
 
 
 def album_image_to_dict(img):
@@ -97,5 +97,6 @@ if __name__ == "__main__":
             if not img["animated"]:
                 i += 1
                 print(json.dumps(img))
+                get_img_from_link(img['url'], img['id']+'-imgur')
         if i >= n:
             break
