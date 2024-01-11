@@ -8,21 +8,37 @@ import requests
 from transformers import AutoImageProcessor, MobileViTV2Model
 import torch
 import json
+from google.cloud import storage
+import io
 
 spark = SparkSession.builder.appName('vit').getOrCreate()
 
 image_processor = AutoImageProcessor.from_pretrained("apple/mobilevitv2-1.0-imagenet1k-256")
 model = MobileViTV2Model.from_pretrained("apple/mobilevitv2-1.0-imagenet1k-256")
 
+def get_image(url):
+    if not url.endswith((".jpg", ".jpeg", ".png", ".webp")):
+        return None
+    if url[:5] == "gs://":
+        url_trimmed = url.replace("gs://", "")
+        bucket_name, blob_name = url_trimmed.split("/", 1)
+        storage_client = storage.Client()
+        
+        bucket = storage_client.bucket(bucket_name)
+        blob = bucket.blob(blob_name)
+        result = blob.download_as_bytes()
+        contents = io.BytesIO(result)
+    else:
+        contents = requests.get(url, stream=True).raw
+    
+    image = PIL.Image.open(contents)
+    return image    
+
 @udf
 def process(url):
     print("[UDF] Processing", url)
-    if not url.endswith((".jpg", ".jpeg", ".png", ".webp")):
-        return ""
     try:
-        image = PIL.Image.open(
-            requests.get(url, stream=True).raw
-        )
+        image = get_image(url)
         inputs = image_processor(image, return_tensors="pt")
         with torch.no_grad():
             outputs = model(**inputs)
