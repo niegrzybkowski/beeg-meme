@@ -1,3 +1,4 @@
 pillow
 transformers
 pyspark
+google-cloud-storage
