@@ -39,7 +39,7 @@ raw_kafka = (
   spark 
   .readStream 
   .format("kafka") 
-  .option("kafka.bootstrap.servers", "nifi:9092") 
+  .option("kafka.bootstrap.servers", "kafka-0:9092") 
   .option("subscribe", "ocr2ner") 
   .load()
 )
@@ -61,7 +61,7 @@ ner2analytics_ssc = (
     kafka_message
     .writeStream 
     .format("kafka") 
-    .option("kafka.bootstrap.servers", "nifi:9092") 
+    .option("kafka.bootstrap.servers", "kafka-0:9092") 
     .option("checkpointLocation", "/tmp/ner/checkpoint/analytics")
     .option("topic", "ner2analytics")
     .start()

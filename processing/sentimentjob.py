@@ -35,7 +35,7 @@ raw_kafka = (
   spark 
   .readStream 
   .format("kafka") 
-  .option("kafka.bootstrap.servers", "nifi:9092") 
+  .option("kafka.bootstrap.servers", "kafka-0:9092") 
   .option("subscribe", "ocr2sentiment") 
   .load()
 )
@@ -57,7 +57,7 @@ sentiment2analytics_ssc = (
     kafka_message
     .writeStream 
     .format("kafka") 
-    .option("kafka.bootstrap.servers", "nifi:9092") 
+    .option("kafka.bootstrap.servers", "kafka-0:9092") 
     .option("checkpointLocation", "/tmp/sentiment/checkpoint/analytics")
     .option("topic", "sentiment2analytics")
     .start()

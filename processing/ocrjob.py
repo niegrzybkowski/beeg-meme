@@ -61,7 +61,7 @@ raw_kafka = (
   spark 
   .readStream 
   .format("kafka") 
-  .option("kafka.bootstrap.servers", "nifi:9092") 
+  .option("kafka.bootstrap.servers", "kafka-0:9092") 
   .option("subscribe", "nifi2ocr") 
   .load()
 )
@@ -93,7 +93,7 @@ ocr2ner_ssc = (
     kafka_message
     .writeStream 
     .format("kafka") 
-    .option("kafka.bootstrap.servers", "nifi:9092") 
+    .option("kafka.bootstrap.servers", "kafka-0:9092") 
     .option("checkpointLocation", "/tmp/ocr/checkpoint/ner")
     .option("topic", "ocr2ner")
     .start()
@@ -103,7 +103,7 @@ ocr2sentiment_ssc = (
     kafka_message
     .writeStream  
     .format("kafka") 
-    .option("kafka.bootstrap.servers", "nifi:9092") 
+    .option("kafka.bootstrap.servers", "kafka-0:9092") 
     .option("checkpointLocation", "/tmp/ocr/checkpoint/sentiment")
     .option("topic", "ocr2sentiment")
     .start()

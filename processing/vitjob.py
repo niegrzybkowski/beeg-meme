@@ -63,7 +63,7 @@ raw_kafka = (
   spark 
   .readStream 
   .format("kafka") 
-  .option("kafka.bootstrap.servers", "nifi:9092") 
+  .option("kafka.bootstrap.servers", "kafka-0:9092") 
   .option("subscribe", "nifi2vit") 
   .load()
 )
@@ -85,7 +85,7 @@ vit2analytics_ssc = (
     kafka_message
     .writeStream 
     .format("kafka") 
-    .option("kafka.bootstrap.servers", "nifi:9092") 
+    .option("kafka.bootstrap.servers", "kafka-0:9092") 
     .option("checkpointLocation", "/tmp/vit/checkpoint/analytics")
     .option("topic", "vit2analytics")
     .start()
@@ -95,7 +95,7 @@ vit2cluster_ssc = (
     kafka_message
     .writeStream  
     .format("kafka") 
-    .option("kafka.bootstrap.servers", "nifi:9092") 
+    .option("kafka.bootstrap.servers", "kafka-0:9092") 
     .option("checkpointLocation", "/tmp/vit/checkpoint/cluster")
     .option("topic", "vit2cluster")
     .start()

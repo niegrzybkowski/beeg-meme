@@ -6,5 +6,5 @@ git pull
 cd /root
 
 # refresh requirements
-pip install -r processing/requirements.txt
-pip install -r processing/requirements_cluster.txt
+pip install -r repo/processing/requirements.txt
+pip install -r repo/processing/requirements_cluster.txt

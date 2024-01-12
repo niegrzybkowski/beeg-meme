@@ -44,7 +44,7 @@ raw_kafka = (
   spark 
   .readStream 
   .format("kafka") 
-  .option("kafka.bootstrap.servers", "nifi:9092") 
+  .option("kafka.bootstrap.servers", "kafka-0:9092") 
   .option("subscribe", "vit2cluster") 
   .load()
 )
@@ -66,7 +66,7 @@ cluster2analytics_ssc = (
     kafka_message
     .writeStream 
     .format("kafka") 
-    .option("kafka.bootstrap.servers", "nifi:9092") 
+    .option("kafka.bootstrap.servers", "kafka-0:9092") 
     .option("checkpointLocation", "/tmp/cluster/checkpoint/analytics")
     .option("topic", "cluster2analytics")
     .start()
