@@ -1,6 +1,6 @@
 #!/bin/bash
 
-/home/nifi/kafka_2.13-3.6.0/bin/kafka-topics.sh --bootstrap-server localhost:9092 --create --if-not-exists --topic "nifi2vit"
+/home/nifi/kafka_2.13-3.6.0/bin/kafka-topics.sh --bootstrap-server localhost:9092 --create --if-not-exists --topic "nifi2vit" --replication-factor 1 --partitions 3
 /home/nifi/kafka_2.13-3.6.0/bin/kafka-topics.sh --bootstrap-server localhost:9092 --create --if-not-exists --topic "nifi2ocr"
 /home/nifi/kafka_2.13-3.6.0/bin/kafka-topics.sh --bootstrap-server localhost:9092 --create --if-not-exists --topic "nifi2analytics"
 /home/nifi/kafka_2.13-3.6.0/bin/kafka-topics.sh --bootstrap-server localhost:9092 --create --if-not-exists --topic "vit2cluster"
