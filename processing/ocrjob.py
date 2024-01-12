@@ -8,19 +8,36 @@ import requests
 import json
 import easyocr
 import numpy as np
+from google.cloud import storage
 
 spark = SparkSession.builder.appName('ocr').getOrCreate()
 
 model = easyocr.Reader(['en'])
+
+def get_image(url):
+    if not url.endswith((".jpg", ".jpeg", ".png", ".webp")):
+        return None
+    if url[:5] == "gs://":
+        url_trimmed = url.replace("gs://", "")
+        bucket_name, blob_name = url_trimmed.split("/", 1)
+        storage_client = storage.Client()
+        
+        bucket = storage_client.bucket(bucket_name)
+        blob = bucket.blob(blob_name)
+        result = blob.download_as_bytes()
+        contents = io.BytesIO(result)
+    else:
+        contents = requests.get(url, stream=True).raw
+    
+    image = PIL.Image.open(contents)
+    return image   
 
 @udf
 def process(url):
     if not url.endswith((".jpg", ".jpeg", ".png", ".webp")):
         return ""
     try:
-        image = PIL.Image.open(
-            requests.get(url, stream=True).raw
-        )
+        image = get_image(url)
         open_cv_image = np.array(image.convert('RGB'))
         outputs = model.readtext(open_cv_image, detail=0, paragraph=True)
         text = "".join([phrase.lower() + ". " for phrase in outputs])
