@@ -1,12 +1,17 @@
 # Run with:
 # spark-submit --name ocr --packages org.apache.spark:spark-sql-kafka-0-10_2.12:3.5.0 ocrjob.py
+# Install tesserocr by:
+# 1. Download `tesserocr-{version}.whl` from https://github.com/simonflueckiger/tesserocr-windows_build/releases
+# 2. Run `pip install tesserocr-{version}.whl`
+# 3. Download `eng.traineddata` from https://github.com/tesseract-ocr/tessdata/tree/main
+# 4. Place `eng.traineddata` in the working directory
 from pyspark.sql import SparkSession
 from pyspark.sql.functions import *
 from pyspark.sql.types import *
 import PIL
 import requests
 import json
-import easyocr
+import tesserocr
 import numpy as np
 from google.cloud import storage
 
@@ -38,9 +43,9 @@ def process(url):
         return ""
     try:
         image = get_image(url)
-        open_cv_image = np.array(image.convert('RGB'))
-        outputs = model.readtext(open_cv_image, detail=0, paragraph=True)
-        text = "".join([phrase.lower() + ". " for phrase in outputs])
+        text = tesserocr.image_to_text(image)
+        text = text.lower().strip().replace('\n',' ')
+        text = text.sub(r"( )\1+",r". ", text)
         return json.dumps(text) 
     except Exception:
         import traceback
