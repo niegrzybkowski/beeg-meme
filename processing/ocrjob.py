@@ -17,8 +17,6 @@ from google.cloud import storage
 
 spark = SparkSession.builder.appName('ocr').getOrCreate()
 
-model = easyocr.Reader(['en'])
-
 def get_image(url):
     if not url.endswith((".jpg", ".jpeg", ".png", ".webp")):
         return None
