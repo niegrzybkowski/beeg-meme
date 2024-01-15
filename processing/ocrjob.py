@@ -14,6 +14,7 @@ import json
 import tesserocr
 import numpy as np
 from google.cloud import storage
+import re
 
 spark = SparkSession.builder.appName('ocr').getOrCreate()
 
@@ -37,13 +38,14 @@ def get_image(url):
 
 @udf
 def process(url):
+    print("[UDF] Processing ", url)
     if not url.endswith((".jpg", ".jpeg", ".png", ".webp")):
         return ""
     try:
         image = get_image(url)
-        text = tesserocr.image_to_text(image)
+        text = tesserocr.image_to_text(image.convert('RGB'))
         text = text.lower().strip().replace('\n',' ')
-        text = text.sub(r"( )\1+",r". ", text)
+        text = re.sub(r"( )\1+",r". ", text)
         return json.dumps(text) 
     except Exception:
         import traceback
@@ -86,7 +88,7 @@ ocr2analytics_ssc = (
     kafka_message
     .writeStream
     .format("kafka")
-    .option("kafka.bootstrap.servers")
+    .option("kafka.bootstrap.servers", "kafka-0:9092")
     .option("checkpointLocation","/tmp/ocr/checkpoint/analytics")
     .option("topic", "ocr2analytics")
     .start()
