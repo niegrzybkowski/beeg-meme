@@ -71,14 +71,16 @@ raw_kafka = (
 parsed_message = raw_kafka.select(
   from_json(col("value").cast("string"), schema).alias("message")
 )
+parsed_message = parsed_message.withColumn("timestamp",current_timestamp())
 
 embedded = parsed_message.select(
   col("message.global_id").alias("global_id"),
-  process(col("message.url")).alias("embeddings")
+  process(col("message.url")).alias("embeddings"),
+  col("timestamp")
 )
 
 kafka_message = embedded.select(
-  to_json(struct(col("global_id"), col("embeddings"))).alias("value")
+  to_json(struct(col("global_id"), col("embeddings"), col("timestamp"))).alias("value")
 )
 
 vit2analytics_ssc = (

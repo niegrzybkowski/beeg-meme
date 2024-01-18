@@ -47,14 +47,16 @@ raw_kafka = (
 parsed_message = raw_kafka.select(
   from_json(col("value").cast("string"), schema).alias("message")
 )
+parsed_message = parsed_message.withColumn("timestamp",current_timestamp())
 
 nes = parsed_message.select(
   col("message.global_id").alias("global_id"),
-  process(col("message.text")).alias("entities")
+  process(col("message.text")).alias("entities"),
+  col("timestamp")
 )
 
 kafka_message = nes.select(
-  to_json(struct(col("global_id"), col("entities"))).alias("value")
+  to_json(struct(col("global_id"), col("entities"),col("timestamp"))).alias("value")
 )
 
 ner2analytics_ssc = (

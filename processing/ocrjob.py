@@ -72,14 +72,16 @@ raw_kafka = (
 parsed_message = raw_kafka.select(
   from_json(col("value").cast("string"), schema).alias("message")
 )
+parsed_message = parsed_message.withColumn("timestamp",current_timestamp())
 
 text = parsed_message.select(
   col("message.global_id").alias("global_id"),
-  process(col("message.url")).alias("text")
+  process(col("message.url")).alias("text"),
+  col("timestamp")
 )
 
 kafka_message = text.select(
-  to_json(struct(col("global_id"), col("text"))).alias("value")
+  to_json(struct(col("global_id"), col("text"), col("timestamp"))).alias("value")
 )
 
 ocr2analytics_ssc = (
