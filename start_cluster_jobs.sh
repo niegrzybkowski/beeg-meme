@@ -10,13 +10,13 @@ spark-submit --name vit \
 spark-submit --name ocr \
     --packages org.apache.spark:spark-sql-kafka-0-10_2.12:3.5.0 \
     --master local[4] \
-    ocrjob.py &> /var/log/sentiment.log & 
+    ocrjob.py &> ~/log/sentiment.log & 
 
 
 spark-submit --name ner \
     --packages org.apache.spark:spark-sql-kafka-0-10_2.12:3.5.0 \
     --master local[2] \
-    nerjob.py &> /var/log/ner.log & 
+    nerjob.py &> ~/log/ner.log & 
 
 spark-submit --name cluster \
     --packages org.apache.spark:spark-sql-kafka-0-10_2.12:3.5.0 \
@@ -35,3 +35,8 @@ spark-submit --name sentiment \
     --executor-cores 1 \
     --total-executor-cores 1 \
     sentimentjob.py &> /var/log/sentiment.log & 
+
+spark-submit --name analytics \
+    --packages org.apache.spark:spark-sql-kafka-0-10_2.12:3.5.0 \
+    --master local[1] \
+    analyticsjob.py &> ~/log/analytics.log & 

@@ -7,7 +7,7 @@ import json
 import pickle
 from sklearn.cluster import Birch
 
-spark = SparkSession.builder.appName('vit').getOrCreate()
+spark = SparkSession.builder.appName('cluster').getOrCreate()
 
 model = Birch()
 n_items = [0]
