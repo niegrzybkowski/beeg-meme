@@ -2,3 +2,4 @@ pillow
 transformers
 pyspark
 google-cloud-storage
+scikit-learn
