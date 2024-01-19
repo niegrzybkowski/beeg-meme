@@ -22,12 +22,12 @@ nifi_raw_df = (
 nifi_schema = StructType([
     StructField("global_id", StringType()),
     StructField("author", StringType()),
-    StructField("created_time", TimestampType()), # !!!! processing time or event time?
+    StructField("created_time", StringType()), 
     StructField("desc", StringType()),
     StructField("score", IntegerType()),
     StructField("url", StringType()),
     StructField("source", StringType()),
-#    StructField("timestamp", TimestampType()),
+    StructField("ingestion_time", TimestampType()),
 ])
 nifi_df = nifi_raw_df.select(
   from_json(col("value").cast("string"), nifi_schema).alias("message")
@@ -41,7 +41,7 @@ nifi_df_ts = nifi_df.select(
   col("message.score").alias("score"),
   col("message.url").alias("url"),
   col("message.source").alias("source"),
-#  col("message.timestamp").alias("timestamp"),
+  col("message.ingestion_time").alias("ingestion_time"),
 )
 
 
@@ -187,7 +187,7 @@ sent_df_ts = sent_df.select(
 
 ### Join steams ###
 threshold_sec = 60
-df_basic = nifi_df_ts.withWatermark("created_time", f"{threshold_sec} seconds")
+df_basic = nifi_df_ts.withWatermark("ingestion_time", f"{threshold_sec} seconds")
 df_vit = vit_df_ts.withWatermark("timestamp", f"{threshold_sec} seconds")
 df_cluster = cluster_df_ts.withWatermark("timestamp", f"{threshold_sec} seconds")
 df_ocr = ocr_df_ts.withWatermark("timestamp", f"{threshold_sec} seconds")
@@ -225,8 +225,8 @@ df = df_basic.join(
         df_vit,
         expr("""
             vit_global_id = basic_global_id AND
-            vit_timestamp >= created_time AND
-            vit_timestamp <= created_time + interval 1 minute
+            vit_timestamp >= ingestion_time AND
+            vit_timestamp <= ingestion_time + interval 1 minute
             """),
         "leftOuter"                 
         )
@@ -236,8 +236,8 @@ df = df.join(
         df_cluster,
         expr("""
             cluster_global_id = basic_global_id AND
-            cluster_timestamp >= created_time AND
-            cluster_timestamp <= created_time + interval 1 minute
+            cluster_timestamp >= ingestion_time AND
+            cluster_timestamp <= ingestion_time + interval 1 minute
             """),
         "leftOuter"                 
         )
@@ -246,8 +246,8 @@ df = df.join(
         df_ocr,
         expr("""
             ocr_global_id = basic_global_id AND
-            ocr_timestamp >= created_time AND
-            ocr_timestamp <= created_time + interval 1 minute
+            ocr_timestamp >= ingestion_time AND
+            ocr_timestamp <= ingestion_time + interval 1 minute
             """),
         "leftOuter"                 
         )
@@ -256,18 +256,18 @@ df = df.join(
         df_ner,
         expr("""
             ner_global_id = basic_global_id AND
-            ner_timestamp >= created_time AND
-            ner_timestamp <= created_time + interval 1 minute
+            ner_timestamp >= ingestion_time AND
+            ner_timestamp <= ingestion_time + interval 1 minute
             """),
         "leftOuter"                 
         )
-# + OCR
+# + Sentiment
 df = df.join(
         df_sent,
         expr("""
             sent_global_id = basic_global_id AND
-            sent_timestamp >= created_time AND
-            sent_timestamp <= created_time + interval 1 minute
+            sent_timestamp >= ingestion_time AND
+            sent_timestamp <= ingestion_time + interval 1 minute
             """),
         "leftOuter"                 
         )
@@ -290,20 +290,23 @@ kafka_message = df.select(
             col("text"), 
             col("entities"),
             col("sentiments"),
-#            col("basic_timestamp")
+#            col("ingestion_time")
             )
     ).alias("value")
 )
 
-query = (
-    kafka_message
-    .writeStream
-    .format("kafka")
-    .option("kafka.bootstrap.servers", "kafka-0:9092")
-    .option("checkpointLocation", "/tmp/analytics/checkpoint/analytics")
-    .option("topic", "test")
-#    .trigger(processingTime='10 seconds')
-    .start()
-)
-
+query = kafka_message.writeStream.outputMode("append").format("console").start()
 query.awaitTermination()
+
+#query = (
+#    kafka_message
+#    .writeStream
+#    .format("kafka")
+#    .option("kafka.bootstrap.servers", "kafka-0:9092")
+#    .option("checkpointLocation", "/tmp/analytics/checkpoint/analytics")
+#    .option("topic", "test")
+##    .trigger(processingTime='10 seconds')
+#    .start()
+#)
+#
+#query.awaitTermination()
