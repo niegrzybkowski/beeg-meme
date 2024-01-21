@@ -5,8 +5,13 @@ import json
 import io
 import time
 
+KEYSPACE="beeg"
+TABLE="meme"
 
-spark = SparkSession.builder.appName('analytics').getOrCreate()
+spark = SparkSession.builder.appName('analytics') \
+         .config('spark.cassandra.connection.host','database.europe-north1-a.c.beeg-meme.internal') \
+         .config('spark.sql.streaming.statefulOperator.checkCorrectness.enabled','false') \
+         .getOrCreate()
 
 ### nifi ###
 nifi_raw_df = (
@@ -186,37 +191,30 @@ sent_df_ts = sent_df.select(
 
 
 ### Join steams ###
-threshold_sec = 60
-df_basic = nifi_df_ts.withWatermark("ingestion_time", f"{threshold_sec} seconds")
-df_vit = vit_df_ts.withWatermark("timestamp", f"{threshold_sec} seconds")
-df_cluster = cluster_df_ts.withWatermark("timestamp", f"{threshold_sec} seconds")
-df_ocr = ocr_df_ts.withWatermark("timestamp", f"{threshold_sec} seconds")
-df_ner = ner_df_ts.withWatermark("timestamp", f"{threshold_sec} seconds")
-df_sent = sent_df_ts.withWatermark("timestamp", f"{threshold_sec} seconds")
+threshold_sec = 20
+threshold_min = 5
+threshold = f"{threshold_min} minutes"
+df_basic = nifi_df_ts.withWatermark("ingestion_time", threshold)
+df_vit = vit_df_ts.withWatermark("timestamp", threshold)
+df_cluster = cluster_df_ts.withWatermark("timestamp", threshold)
+df_ocr = ocr_df_ts.withWatermark("timestamp", threshold)
+df_ner = ner_df_ts.withWatermark("timestamp", threshold)
+df_sent = sent_df_ts.withWatermark("timestamp", threshold)
 
 ### Rename columns ###
 col_names = ['global_id', 'timestamp']
-for col_name in ['global_id']: # df_basic.columns:
+for col_name in ['global_id']: 
     df_basic = df_basic.withColumnRenamed(col_name, f"basic_{col_name}")
-for col_name in col_names: # df_vit.columns:
+for col_name in col_names: 
     df_vit = df_vit.withColumnRenamed(col_name, f"vit_{col_name}")
-for col_name in col_names: # df_cluster.columns:
+for col_name in col_names: 
     df_cluster = df_cluster.withColumnRenamed(col_name, f"cluster_{col_name}")
-for col_name in col_names: # df_ocr.columns:
+for col_name in col_names: 
     df_ocr = df_ocr.withColumnRenamed(col_name, f"ocr_{col_name}")
-for col_name in col_names: # df_ner.columns:
+for col_name in col_names: 
     df_ner = df_ner.withColumnRenamed(col_name, f"ner_{col_name}")
-for col_name in col_names: # df_sent.columns:
+for col_name in col_names: 
     df_sent = df_sent.withColumnRenamed(col_name, f"sent_{col_name}")
-
-
-### Drop duplicates ###
-#df_basic = df_basic.dropDuplicates()
-#df_vit = df_vit.dropDuplicates()
-#df_cluster = df_cluster.dropDuplicates()
-#df_ocr = df_ocr.dropDuplicates()
-#df_ner = df_ner.dropDuplicates()
-#df_sent = df_sent.dropDuplicates()
 
 ### join ###
 
@@ -226,7 +224,7 @@ df = df_basic.join(
         expr("""
             vit_global_id = basic_global_id AND
             vit_timestamp >= ingestion_time AND
-            vit_timestamp <= ingestion_time + interval 1 minute
+            vit_timestamp <= ingestion_time + interval 5 minutes
             """),
         "leftOuter"                 
         )
@@ -237,7 +235,7 @@ df = df.join(
         expr("""
             cluster_global_id = basic_global_id AND
             cluster_timestamp >= ingestion_time AND
-            cluster_timestamp <= ingestion_time + interval 1 minute
+            cluster_timestamp <= ingestion_time + interval 5 minutes
             """),
         "leftOuter"                 
         )
@@ -247,7 +245,7 @@ df = df.join(
         expr("""
             ocr_global_id = basic_global_id AND
             ocr_timestamp >= ingestion_time AND
-            ocr_timestamp <= ingestion_time + interval 1 minute
+            ocr_timestamp <= ingestion_time + interval 5 minutes
             """),
         "leftOuter"                 
         )
@@ -257,7 +255,7 @@ df = df.join(
         expr("""
             ner_global_id = basic_global_id AND
             ner_timestamp >= ingestion_time AND
-            ner_timestamp <= ingestion_time + interval 1 minute
+            ner_timestamp <= ingestion_time + interval 5 minutes
             """),
         "leftOuter"                 
         )
@@ -267,46 +265,39 @@ df = df.join(
         expr("""
             sent_global_id = basic_global_id AND
             sent_timestamp >= ingestion_time AND
-            sent_timestamp <= ingestion_time + interval 1 minute
+            sent_timestamp <= ingestion_time + interval 5 minutes
             """),
         "leftOuter"                 
         )
 
 
-#df = df.dropDuplicates()
-
-kafka_message = df.select(
-    to_json(
-        struct(
-            col("basic_global_id").alias("global_id"),
-            col("author"),
-            col("created_time"),
-            col("desc"),
-            col("score"),
-            col("url"),
-            col("source"),
-            col("embeddings"),
-            col("cluster"),
-            col("text"), 
-            col("entities"),
-            col("sentiments"),
-#            col("ingestion_time")
-            )
-    ).alias("value")
+df_cas = df.select(
+    col("basic_global_id").alias("global_id"),
+    col("author"),
+    col("created_time"),
+    col("desc").alias("description"),
+    col("score"),
+    col("url"),
+    col("source"),
+    col("embeddings"),
+    col("cluster"),
+    col("text"),
+    col("entities"),
+    col("sentiments")
 )
 
-query = kafka_message.writeStream.outputMode("append").format("console").start()
+def cassandra_sink(df_total, epoch_id):
+    df_total.write \
+            .format("org.apache.spark.sql.cassandra") \
+            .options(table=TABLE, keyspace=KEYSPACE) \
+            .mode("append") \
+            .save()
+    
+query = (
+    df_cas.writeStream
+          .trigger(processingTime="0 seconds")
+          .outputMode("append")
+          .foreachBatch(cassandra_sink)
+          .start()
+)
 query.awaitTermination()
-
-#query = (
-#    kafka_message
-#    .writeStream
-#    .format("kafka")
-#    .option("kafka.bootstrap.servers", "kafka-0:9092")
-#    .option("checkpointLocation", "/tmp/analytics/checkpoint/analytics")
-#    .option("topic", "test")
-##    .trigger(processingTime='10 seconds')
-#    .start()
-#)
-#
-#query.awaitTermination()
