@@ -9,7 +9,7 @@ from sklearn.cluster import Birch
 
 spark = SparkSession.builder.appName('cluster').getOrCreate()
 
-model = Birch(n_clusters=100)
+model = Birch(n_clusters=40)
 n_items = [0]
 
 # scikit complains about clusters
