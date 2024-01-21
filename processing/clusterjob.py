@@ -10,7 +10,9 @@ from sklearn.cluster import Birch
 spark = SparkSession.builder.appName('cluster').getOrCreate()
 
 model = Birch(n_clusters=40)
-n_items = [0]
+
+with open(f"/models/birch", "wb") as f:
+    pickle.dump(model, f)
 
 # scikit complains about clusters
 import warnings
@@ -22,13 +24,15 @@ def process(global_id, embeddings):
     if embeddings == "":
         return -1
     try:
+        with open("/models/birch", "rb") as f:
+            model = pickle.load(f)
         embeddings = json.loads(embeddings)
+        print(embeddings[:10])
         model.partial_fit([embeddings])
         value = int(model.predict([embeddings])[0])
-        n_items[0] = n_items[0] + 1
-        if n_items[0] % 10 == 0:
-            with open(f"/models/birch_{n_items}", "w") as f:
-                pickle.dump(model, f)
+        print(value)
+        with open(f"/models/birch", "wb") as f:
+            pickle.dump(model, f)
         return value
     except Exception:
         import traceback
